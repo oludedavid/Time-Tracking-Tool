@@ -1,0 +1,79 @@
+const CommentModel = require("../../models/CommentModel");
+const ReplyModel = require("../../models/ReplyModel");
+const WorkingHoursModel = require("../../models/WorkingHoursModel");
+
+class CommunicationService {
+  /**
+   * Creates a comment on a working hours entry.
+   * @param {Object} comment - The comment details.
+   * @param {String} comment.comment - The content of the comment.
+   * @param {String} comment.userId - The ID of the user creating the comment.
+   * @param {String} comment.workinghoursEntryId - The ID of the associated working hours entry.
+   * @returns {Object} - The created comment.
+   */
+  static async createComment(comment) {
+    const { comment: commentText, userId, workinghoursEntryId } = comment;
+
+    try {
+      // Validate the associated working hours entry
+      const workingHoursEntry = await WorkingHoursModel.findById(
+        workinghoursEntryId
+      );
+      if (!workingHoursEntry) {
+        throw new Error("Working hours entry not found.");
+      }
+
+      // Create a new comment
+      const newComment = await CommentModel.create({
+        comment: commentText,
+        userId,
+        workinghoursEntryId,
+      });
+
+      // Add the comment to the working hours entry
+      workingHoursEntry.comments.push(newComment._id);
+      await workingHoursEntry.save();
+
+      return newComment;
+    } catch (error) {
+      throw new Error(`Error creating comment: ${error.message}`);
+    }
+  }
+
+  /**
+   * Creates a reply to a comment.
+   * @param {Object} reply - The reply details.
+   * @param {String} reply.reply - The content of the reply.
+   * @param {String} reply.userId - The ID of the user creating the reply.
+   * @param {String} reply.commentId - The ID of the comment being replied to.
+   * @returns {Object} - The created reply.
+   */
+  static async createReply(reply) {
+    const { reply: replyText, userId, commentId } = reply;
+
+    try {
+      // Validate the associated comment
+      const comment = await CommentModel.findById(commentId);
+      if (!comment) {
+        throw new Error("Comment not found.");
+      }
+
+      // Create a new reply
+      const newReply = await ReplyModel.create({
+        reply: replyText,
+        userId,
+        commentId,
+      });
+
+      // Add the reply to the comment
+      comment.replies.push(newReply._id);
+      await comment.save();
+
+      return newReply;
+    } catch (error) {
+      throw new Error(`Error creating reply: ${error.message}`);
+    }
+  }
+}
+
+module.exports = CommunicationService;
