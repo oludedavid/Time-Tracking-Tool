@@ -21,7 +21,8 @@
         "users:delete",
         "comments:manage",
         "comments:create",
-        "replys:create"
+        "replys:create",
+        "replycomments:create"
       ]
     },
     {
@@ -33,7 +34,8 @@
         "hours:view_own",
         "projects:view",
         "comments:create",
-        "replys:create"
+        "replys:create",
+        "replycomments:create"
       ]
     }
   ]

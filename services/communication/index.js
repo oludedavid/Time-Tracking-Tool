@@ -1,5 +1,6 @@
 const CommentModel = require("../../models/CommentModel");
 const ReplyModel = require("../../models/ReplyModel");
+const ReplyCommentModel = require("../../models/ReplyCommentModel");
 const WorkingHoursModel = require("../../models/WorkingHoursModel");
 
 class CommunicationService {
@@ -72,6 +73,41 @@ class CommunicationService {
       return newReply;
     } catch (error) {
       throw new Error(`Error creating reply: ${error.message}`);
+    }
+  }
+
+  /**
+   * Creates a reply to a reply (i.e., a comment on a reply).
+   * @param {Object} replyComment - The reply comment details.
+   * @param {String} replyComment.comment - The content of the comment.
+   * @param {String} replyComment.userId - The ID of the user creating the reply comment.
+   * @param {String} replyComment.replyId - The ID of the reply being commented on.
+   * @returns {Object} - The created reply comment.
+   */
+  static async replyToComment(replyComment) {
+    const { comment: commentText, userId, replyId } = replyComment;
+
+    try {
+      // Validate the associated reply
+      const reply = await ReplyModel.findById(replyId);
+      if (!reply) {
+        throw new Error("Reply not found.");
+      }
+
+      // Create a new reply comment
+      const newReplyComment = await ReplyCommentModel.create({
+        comment: commentText,
+        userId,
+        replyId,
+      });
+
+      // Add the reply comment to the reply
+      reply.replies.push(newReplyComment._id);
+      await reply.save();
+
+      return newReplyComment;
+    } catch (error) {
+      throw new Error(`Error creating reply comment: ${error.message}`);
     }
   }
 }

@@ -1,10 +1,7 @@
 const express = require("express");
 const CommunicationService = require("../../services/communication");
 const authMiddleware = require("../../middlewares/authMiddleware");
-const {
-  checkPermission,
-  checkRole,
-} = require("../../middlewares/rbacMiddleware");
+const { checkPermission } = require("../../middlewares/rbacMiddleware");
 
 const router = express.Router();
 
@@ -56,6 +53,33 @@ router.post(
       });
 
       res.status(201).json({ success: true, reply: newReply });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+);
+
+/**
+ * @route POST /reply-comments
+ * @desc Create a reply to a reply (i.e., comment on a reply)
+ * @access Protected
+ */
+router.post(
+  "/reply-comments",
+  authMiddleware,
+  checkPermission(["replycomments:create", "*"]),
+  async (req, res) => {
+    try {
+      const { comment, replyId } = req.body;
+      const userId = req.user.id;
+
+      const newReplyComment = await CommunicationService.replyToComment({
+        comment,
+        userId,
+        replyId,
+      });
+
+      res.status(201).json({ success: true, replyComment: newReplyComment });
     } catch (error) {
       res.status(400).json({ success: false, message: error.message });
     }
