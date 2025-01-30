@@ -86,7 +86,7 @@ class RoleService {
       const role = await RoleModel.findOneAndUpdate(
         { roleName: name },
         { grants: grants },
-        { new: true } // Return the updated role object
+        { new: true }
       );
       if (!role) {
         throw new Error("Role not found.");

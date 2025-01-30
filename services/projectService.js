@@ -35,38 +35,34 @@ class ProjectService {
    * @returns {Object} - An object containing success status and the updated project or an error message.
    */
   static async assignFreelancersToProject(projectId, freelancerIds) {
+    if (!Array.isArray(freelancerIds)) {
+      return { success: false, message: "freelancerIds must be an array" };
+    }
+
     try {
-      // Find the project by its ID
       const project = await ProjectModel.findById(projectId);
 
       if (!project) {
-        // If the project is not found, return an error message
         return { success: false, message: "Project not found" };
       }
 
-      // Find all users with the given IDs who are freelancers
       const freelancers = await UserModel.find({
         _id: { $in: freelancerIds },
-        role: "freelancer",
+        roleName: "freelancer",
       });
 
       if (freelancers.length !== freelancerIds.length) {
-        // If one or more freelancer IDs are invalid or the users are not freelancers, return an error
         return {
           success: false,
           message: "One or more freelancer IDs are invalid or not freelancers.",
         };
       }
 
-      // Add the valid freelancer IDs to the project's assignedFreelancers array
-      project.assignedFreelancers.push(...freelancerIds);
+      project.assignedFreelancers.push(...freelancers.map((f) => f._id));
+      await project.save();
 
-      // Save the updated project to the database
-      const updatedProject = await project.save();
-
-      return { success: true, project: updatedProject };
+      return { success: true, project };
     } catch (error) {
-      // Handle and return any errors that occur during the assignment process
       return { success: false, message: error.message };
     }
   }
@@ -80,11 +76,10 @@ class ProjectService {
       // Retrieve all projects and populate the assignedFreelancers field with freelancer details
       const projects = await ProjectModel.find().populate(
         "assignedFreelancers",
-        "name email"
+        "fullName email"
       );
       return { success: true, projects };
     } catch (error) {
-      // Handle and return any errors that occur during the retrieval process
       return { success: false, message: error.message };
     }
   }

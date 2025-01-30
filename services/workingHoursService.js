@@ -63,7 +63,7 @@ class WorkingHoursService {
     workingHourId,
     approvalStatus,
     comments,
-    userId
+    approvedBy
   ) {
     if (!["approved", "rejected"].includes(approvalStatus)) {
       return {
@@ -76,7 +76,7 @@ class WorkingHoursService {
     try {
       const updatedWorkingHours = await WorkingHoursModel.findByIdAndUpdate(
         workingHourId,
-        { approvalStatus, comments, approvedBy: userId },
+        { approvalStatus, comments, approvedBy: approvedBy },
         { new: true }
       );
 

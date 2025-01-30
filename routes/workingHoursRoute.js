@@ -5,14 +5,23 @@ import { checkPermission, checkRole } from "../middlewares/rbacMiddleware.js";
 
 const router = express.Router();
 
-// POST request to log working hours
-// Only authenticated freelancers with "hours:create" permission can log hours
+/**
+ * @route POST api/time-entries
+ * @desc Log working hours
+ * @access Protected (freelancers with "hours:create" permission)
+ *
+ * This route allows freelancers to log their working hours. The request body
+ * should contain the project ID, work entries, and hourly rate. If successful,
+ * it returns the logged working hours and a success message. If an error occurs,
+ * a 500 error response is returned.
+ */
 router.post(
   "/time-entries",
   authMiddleware,
-  checkPermission("hours:create"),
+  checkPermission(["hours:create"]),
   async (req, res) => {
-    const { freelancerId, projectId, workEntries, hourlyRate } = req.body;
+    const { projectId, workEntries, hourlyRate } = req.body;
+    const freelancerId = req.user.id;
 
     const result = await WorkingHoursService.logWorkingHours(
       freelancerId,
@@ -35,8 +44,15 @@ router.post(
   }
 );
 
-// GET request to view approval requests
-// Only authenticated project managers can view approval requests
+/**
+ * @route GET api/time-entries/approval-requests
+ * @desc View approval requests
+ * @access Protected (project managers only)
+ *
+ * This route allows project managers to view approval requests for working hours
+ * submitted by freelancers. If successful, a list of approval requests is returned.
+ * If an error occurs, a 500 error response is returned.
+ */
 router.get(
   "/time-entries/approval-requests",
   authMiddleware,
@@ -55,8 +71,17 @@ router.get(
   }
 );
 
-// PATCH request to approve or reject a working hours request
-// Only authenticated project managers can approve or reject working hours
+/**
+ * @route PATCH api/time-entries/:workingHourId/approve
+ * @desc Approve or reject working hours request
+ * @access Protected (project managers only)
+ *
+ * This route allows project managers to approve or reject a working hours request
+ * submitted by freelancers. The approval status is passed as part of the request
+ * body, and the working hours ID is part of the URL. If successful, the updated
+ * working hours status is returned. If an error occurs (e.g., invalid status),
+ * a 400 or 404 error response is returned.
+ */
 router.patch(
   "/time-entries/:workingHourId/approve",
   authMiddleware,
@@ -73,12 +98,14 @@ router.patch(
       });
     }
 
+    const approvedBy = req.user.id;
+
     try {
       const result = await WorkingHoursService.approveOrRejectHours(
         workingHourId,
         approvalStatus,
         comments,
-        req.user.id
+        approvedBy
       );
 
       if (!result.success) {

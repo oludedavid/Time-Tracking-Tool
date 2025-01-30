@@ -11,34 +11,42 @@ class UserService {
    * @throws {Error} - If required fields are missing, user already exists, role doesn't exist, or an error occurs during creation.
    */
   static createUser = async (req, res) => {
-    const { name, email, password, role } = req.body;
-
-    if (!name || !email || !password || !role) {
-      return res.status(400).json({ message: "Missing required fields." });
-    }
-
-    const userExists = await UserModel.findOne({ email: email });
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists." });
-    }
-
-    const roleExists = await RoleModel.findOne({ roleName: role });
-    if (!roleExists) {
-      return res.status(400).json({ message: "Role does not exist." });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = new UserModel({
-      name,
-      email,
-      password: hashedPassword,
-      roleId: roleExists._id,
-      roleName: roleExists.roleName,
-    });
-
     try {
+      const { fullName, email, password, role, hourlyRate = 0 } = req.body;
+
+      if (!fullName || !email || !password || !role) {
+        return res.status(400).json({ message: "Missing required fields." });
+      }
+
+      if (role === "freelancer" && !hourlyRate) {
+        return res
+          .status(400)
+          .json({ message: "Hourly rate is required for freelancer." });
+      }
+
+      const userExists = await UserModel.findOne({ email });
+      if (userExists) {
+        return res.status(400).json({ message: "User already exists." });
+      }
+
+      const roleExists = await RoleModel.findOne({ roleName: role });
+      if (!roleExists) {
+        return res.status(400).json({ message: "Role does not exist." });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const newUser = new UserModel({
+        fullName,
+        email,
+        password: hashedPassword,
+        roleId: roleExists._id,
+        roleName: roleExists.roleName,
+        ...(role === "freelancer" && { hourlyRate }),
+      });
+
       await newUser.save();
+
       res
         .status(201)
         .json({ message: "User created successfully.", user: newUser });
@@ -75,7 +83,7 @@ class UserService {
       }
 
       const jwtPayload = { userId: user._id, userRole: user.roleName };
-      const token = generateSecureToken(jwtPayload);
+      const token = await generateSecureToken(jwtPayload);
 
       res.status(200).json({
         message: "Login successful.",
@@ -100,32 +108,29 @@ class UserService {
    * @throws {Error} - If the role or user is not found, or an error occurs during assignment.
    */
   static assignRoleToUser = async (userId, roleName) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-      const role = await RoleModel.findOne({ roleName }).session(session);
+      const role = await RoleModel.findOne({ roleName });
       if (!role) {
         throw new Error("Role not found");
       }
 
-      const user = await UserModel.findById(userId).session(session);
-      if (!user) {
+      const updatedUser = await UserModel.findOneAndUpdate(
+        { _id: userId },
+        {
+          roleId: role._id,
+          roleName: role.roleName,
+          permissions: role.grants,
+        },
+        { new: true }
+      );
+
+      if (!updatedUser) {
         throw new Error("User not found");
       }
 
-      user.roleId = role._id;
-      user.roleName = role.roleName;
-      user.permissions = role.grants;
-
-      await user.save({ session });
-      await session.commitTransaction();
-      return user;
+      return updatedUser;
     } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
+      throw new Error(`Error assigning role: ${error.message}`);
     }
   };
 
@@ -137,18 +142,35 @@ class UserService {
    * @throws {Error} - If the user is not found or an error occurs during the update.
    */
   static updateUser = async (userId, updateData) => {
-    const user = await UserModel.findById(userId);
-    if (!user) {
+    if (updateData.password) {
+      const hashedPassword = await bcrypt.hash(updateData.password, 10);
+      updateData.password = hashedPassword;
+    }
+    const updatedUser = await UserModel.findOneAndUpdate(
+      { _id: userId },
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
       throw new Error("User not found");
     }
 
-    for (let key in updateData) {
-      if (user[key] && updateData[key] !== undefined) {
-        user[key] = updateData[key];
-      }
-    }
+    return updatedUser;
+  };
 
-    return await user.save();
+  /**
+   * Retrieves all users from the database.
+   * @returns {Array} - The list of all users.
+   * @throws {Error} - If an error occurs during retrieval.
+   */
+  static getAllUsers = async () => {
+    try {
+      const users = await UserModel.find();
+      return users;
+    } catch (error) {
+      throw new Error("Error retrieving users.");
+    }
   };
 
   /**
