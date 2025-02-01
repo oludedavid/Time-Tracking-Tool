@@ -2,6 +2,8 @@ import express from "express";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import { checkPermission, checkRole } from "../middlewares/rbacMiddleware.js";
 import UserService from "../services/userService.js";
+import CreateUserDto from "../dtos/user/CreateUserDto.js";
+import LoginUserDto from "../dtos/user/LoginUserDto.js";
 
 const router = express.Router();
 
@@ -15,7 +17,11 @@ const router = express.Router();
  * successful, a 201 response with the created user's data is returned.
  * Otherwise, a 400 error response is returned.
  */
-router.post("/users/register", UserService.createUser);
+router.post(
+  "/users/register",
+  CreateUserDto.validate(),
+  UserService.createUser
+);
 
 /**
  * @route POST api/users/login
@@ -27,7 +33,7 @@ router.post("/users/register", UserService.createUser);
  * token is returned for authentication. If the login fails, a 400 error
  * response is returned.
  */
-router.post("/users/login", UserService.login);
+router.post("/users/login", LoginUserDto.validate(), UserService.login);
 
 /**
  * @route PATCH api/users/assign-role
