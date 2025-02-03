@@ -47,9 +47,14 @@ class UserService {
 
       await newUser.save();
 
-      res
-        .status(201)
-        .json({ message: "User created successfully.", user: newUser });
+      res.status(201).json({
+        message: "User created successfully.",
+        user: {
+          fullName: newUser.fullName,
+          email: newUser.email,
+          role: newUser.roleName,
+        },
+      });
     } catch (error) {
       res
         .status(500)
@@ -90,7 +95,7 @@ class UserService {
         token,
         user: {
           id: user._id,
-          name: user.name,
+          name: user.fullName,
           email: user.email,
           role: user.roleName,
         },

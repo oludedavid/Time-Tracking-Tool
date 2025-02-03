@@ -1,6 +1,7 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import axios from "axios";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +35,12 @@ export default function Login() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    const { data } = await axios.post(
+      "http://localhost:5001/api/users/login",
+      values
+    );
+    console.log(data);
     console.log(values);
   }
 

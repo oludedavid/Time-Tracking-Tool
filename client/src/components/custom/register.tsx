@@ -1,4 +1,7 @@
 "use client";
+import React, { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -73,7 +76,12 @@ export default function Register() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    const { data } = await axios.post(
+      "http://localhost:5001/api/users/register",
+      values
+    );
+    console.log(data);
     console.log(values);
   }
 
@@ -104,7 +112,11 @@ export default function Register() {
             <FormItem>
               <FormLabel className="">Email</FormLabel>
               <FormControl>
-                <Input placeholder="maxmüller@hotmail.com" {...field} />
+                <Input
+                  type="email"
+                  placeholder="maxmüller@hotmail.com"
+                  {...field}
+                />
               </FormControl>
 
               <FormMessage />
@@ -118,7 +130,7 @@ export default function Register() {
             <FormItem>
               <FormLabel className="">Password</FormLabel>
               <FormControl>
-                <Input placeholder="Password" {...field} />
+                <Input type="password" placeholder="Password" {...field} />
               </FormControl>
 
               <FormMessage />
@@ -132,7 +144,11 @@ export default function Register() {
             <FormItem>
               <FormLabel className="">Confirm Password</FormLabel>
               <FormControl>
-                <Input placeholder="Confirm Password" {...field} />
+                <Input
+                  type="password"
+                  placeholder="Confirm Password"
+                  {...field}
+                />
               </FormControl>
 
               <FormMessage />
