@@ -35,6 +35,8 @@ router.post(
  */
 router.post("/users/login", LoginUserDto.validate(), UserService.login);
 
+router.get("/users/login/decode-login-token", UserService.verifyUserLoginToken);
+
 /**
  * @route GET api/users/verify-email
  * @desc Verifies jwt Token

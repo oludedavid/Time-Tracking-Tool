@@ -6,6 +6,11 @@ import { AxiosError } from "axios";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import secureLocalStorage from "react-secure-storage";
+
 import {
   Form,
   FormControl,
@@ -31,7 +36,7 @@ type TLoginUser = z.infer<typeof formSchema>;
 const logUser = async (user: TLoginUser) => {
   try {
     const { data } = await axios.post(
-      "http://localhost:5001/api/users/login",
+      `${process.env.NEXT_PUBLIC_API_URL}/api/users/login`,
       user
     );
     return data;
@@ -50,7 +55,9 @@ const logUser = async (user: TLoginUser) => {
 };
 export default function Login() {
   const { toast } = useToast();
+  const router = useRouter();
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -63,19 +70,38 @@ export default function Login() {
     try {
       const data = await logUser(values);
       if (data.success) {
-        toast({
-          title: "🎉 Login Successful!",
-          description: "You have successfully Logged In",
-          className: "bg-green-500/20 border-green-500",
-        });
+        const token = data.token;
+        secureLocalStorage.setItem("TOKEN", token);
+
+        const { data: verifyData } = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/users/login/decode-login-token`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (verifyData.success) {
+          secureLocalStorage.setItem("USER", JSON.stringify(verifyData.user));
+          if (verifyData.user.role === "admin") {
+            router.push("/admin");
+          } else if (verifyData.user.role === "freelancer") {
+            router.push("/freelancer");
+          } else if (verifyData.user.role === "project_manager") {
+            router.push("/projectManager");
+          } else {
+            router.push("/");
+          }
+        }
       }
     } catch (error) {
       toast({
-        title: "⚠️ Registration Failed",
+        title: "⚠️ Login Failed",
         description:
           error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -122,7 +148,14 @@ export default function Login() {
           )}
         />
 
-        <Button type="submit">Submit</Button>
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full flex items-center justify-center"
+        >
+          {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}{" "}
+          Submit
+        </Button>
       </form>
     </Form>
   );

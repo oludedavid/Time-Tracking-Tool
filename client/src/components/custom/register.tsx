@@ -6,6 +6,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
 import {
   Form,
   FormControl,
@@ -57,7 +59,7 @@ const formSchema = z
       .string()
       .min(8, { message: "Password must be at least 8 characters long" })
       .max(100),
-    role: z.enum(["freelancer", "project manager", "admin"]),
+    role: z.enum(["freelancer", "project_manager", "admin"]),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -69,7 +71,7 @@ type TAddUser = z.infer<typeof formSchema>;
 const addUser = async (user: TAddUser) => {
   try {
     const { data } = await axios.post(
-      "http://localhost:5001/api/users/register",
+      `${process.env.NEXT_PUBLIC_API_URL}/api/users/register`,
       user
     );
     return data;
@@ -91,7 +93,7 @@ const addUser = async (user: TAddUser) => {
 
 export default function Register() {
   const { toast } = useToast();
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -121,6 +123,8 @@ export default function Register() {
           error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -219,7 +223,7 @@ export default function Register() {
                 <SelectContent>
                   <SelectItem value="freelancer">Freelancer</SelectItem>
                   <SelectItem
-                    value="project manager"
+                    value="project_manager"
                     className="hover:bg-white/10"
                   >
                     <span className="capitalize">Project Manager</span>
@@ -231,7 +235,14 @@ export default function Register() {
             </FormItem>
           )}
         />
-        <Button type="submit">Submit</Button>
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full flex items-center justify-center"
+        >
+          {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}{" "}
+          Submit
+        </Button>
       </form>
     </Form>
   );

@@ -8,7 +8,7 @@ class LoginUserDto {
 
   #validateRequiredLoginUserKeys(req, res, next) {
     const bodyKeys = Object.keys(req.body);
-    let missingFields = this.requiredCreateUserFields.filter(
+    let missingFields = this.requiredLoginUserFields.filter(
       (field) => !bodyKeys.includes(field)
     );
 

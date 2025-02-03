@@ -185,6 +185,63 @@ class UserService {
   };
 
   /**
+   * Verifies a user's login token.
+   * @param {Object} req - The request object containing the token in headers.
+   * @param {Object} res - The response object for sending back the result.
+   * @returns {Object} - The verified user's information.
+   * @throws {Error} - If the token is missing, invalid, or an error occurs.
+   */
+  static verifyUserLoginToken = async (req, res) => {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Missing authentication token",
+      });
+    }
+
+    try {
+      const verificationResult = await verifyToken(token);
+
+      if (!verificationResult.valid) {
+        return res.status(401).json({
+          success: false,
+          message: verificationResult.error || "Invalid token",
+          expired: verificationResult.expired,
+        });
+      }
+
+      const { userId, userRole, userName } = verificationResult.payload;
+
+      const user = await UserModel.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Token is valid",
+        user: {
+          id: user._id,
+          role: userRole,
+          name: userName,
+        },
+      });
+    } catch (error) {
+      console.error("Token verification error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error during token verification",
+        error: error.message,
+      });
+    }
+  };
+
+  /**
    * Assigns a role to a user by their ID.
    * @param {String} userId - The ID of the user.
    * @param {String} roleName - The name of the role to assign.
