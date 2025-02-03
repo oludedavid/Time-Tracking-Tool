@@ -1,8 +1,10 @@
 # Time-Tracking-Tool
-A Backend Sketch for a time-tracking tool for freelancers.
+
+A Fullstack Web application for a time-tracking tool for freelancers.
+Authentication and Authorization was implemented using the jwt token and RBAC.
 
 Overview
-This tool is designed for freelancers and project managers to efficiently manage project assignments, log working hours, and streamline approvals. 
+This tool is designed for freelancers and project managers to efficiently manage project assignments, log working hours, and streamline approvals.
 It is built with robust role-based access control, flexible time tracking, and a detailed workflow to ensure transparency and accountability.
 
 Features
@@ -12,7 +14,6 @@ Project Management: Projects include descriptions and assigned freelancers for b
 Approval Workflow: Managers can review, approve, or reject time entries submitted by freelancers.
 Financial Calculation: Automatically calculates total hours and amounts based on the freelancer's hourly rate.
 Comments & Feedback: Communication between freelancers and managers is enabled via comments.
-
 
 User Management and Role-Based Access Control (RBAC)
 Middleware
@@ -77,4 +78,3 @@ DELETE users/:userId
 
 Middleware: authMiddleware, checkRole(["admin", "project_manager"])
 Allows only admin or project_manager roles to delete users.
-
