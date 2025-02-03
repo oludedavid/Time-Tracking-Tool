@@ -36,6 +36,15 @@ router.post(
 router.post("/users/login", LoginUserDto.validate(), UserService.login);
 
 /**
+ * @route GET api/users/verify-email
+ * @desc Verifies jwt Token
+ * @access Public
+ *
+ * This route verifies email tokens.
+ */
+router.get("/users/verify-email", UserService.verifyEmailToken);
+
+/**
  * @route PATCH api/users/assign-role
  * @desc Assign a role to a user
  * @access Protected (admin and project_manager only)

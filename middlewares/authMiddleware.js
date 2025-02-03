@@ -1,6 +1,6 @@
-import jwt from "jsonwebtoken";
+import { verifyToken } from "../helpers/index.js";
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
@@ -10,18 +10,26 @@ const authMiddleware = (req, res, next) => {
   }
 
   try {
-    const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
+    const decoded = await verifyToken(token);
 
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    req.user = {
-      id: decoded.userId,
-      role: decoded.userRole,
-    };
-
-    next();
+    if (decoded.valid) {
+      req.user = {
+        id: decoded.payload.userId,
+        role: decoded.payload.userRole,
+      };
+      return next();
+    } else {
+      return res
+        .status(403)
+        .json({ success: false, message: "Invalid token." });
+    }
   } catch (error) {
-    res.status(403).json({ message: "Invalid or expired token." });
+    console.error("Token verification error:", error);
+    return res.status(403).json({
+      success: false,
+      message: "Invalid or expired token.",
+      details: error.message,
+    });
   }
 };
 

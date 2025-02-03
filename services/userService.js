@@ -1,7 +1,11 @@
 import UserModel from "../models/UserModel.js";
 import RoleModel from "../models/RoleModel.js";
+import { verifyToken } from "../helpers/index.js";
 import bcrypt from "bcrypt";
-import { generateSecureToken } from "../helpers/index.js";
+import {
+  generateSecureToken,
+  sendVerificationEmail,
+} from "../helpers/index.js";
 
 class UserService {
   /**
@@ -34,6 +38,16 @@ class UserService {
         return res.status(400).json({ message: "Role does not exist." });
       }
 
+      try {
+        await sendVerificationEmail(email, fullName);
+      } catch (emailError) {
+        return res.status(500).json({
+          success: false,
+          message: "Failed to send verification email.",
+          error: emailError.message,
+        });
+      }
+
       const hashedPassword = await bcrypt.hash(password, 10);
 
       const newUser = new UserModel({
@@ -48,20 +62,73 @@ class UserService {
       await newUser.save();
 
       res.status(201).json({
-        message: "User created successfully.",
-        user: {
-          fullName: newUser.fullName,
-          email: newUser.email,
-          role: newUser.roleName,
-        },
+        success: true,
+        message:
+          "User created successfully. Please check your email for verification",
       });
     } catch (error) {
-      res
-        .status(500)
-        .json({ message: "Error creating user.", error: error.message });
+      res.status(500).json({
+        success: false,
+        message: "Error creating user.",
+        error: error.message,
+      });
     }
   };
 
+  static verifyEmailToken = async (req, res) => {
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing verification token",
+      });
+    }
+
+    try {
+      const verificationResult = await verifyToken(token);
+
+      if (!verificationResult.valid) {
+        return res.status(401).json({
+          success: false,
+          message: verificationResult.error || "Invalid token",
+          expired: verificationResult.expired,
+        });
+      }
+
+      const user = await UserModel.findOne({
+        email: verificationResult.payload.email,
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      if (user.isVerified) {
+        return res.status(200).json({
+          success: true,
+          message: "Email already verified",
+        });
+      }
+
+      user.isVerified = true;
+      await user.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Email verified successfully",
+      });
+    } catch (error) {
+      console.error("Verification error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error during verification",
+        error: error.message,
+      });
+    }
+  };
   /**
    * Authenticates a user and generates a JWT token.
    * @param {Object} req - The request object containing email and password in the body.
@@ -79,29 +146,41 @@ class UserService {
     try {
       const user = await UserModel.findOne({ email });
       if (!user) {
-        return res.status(400).json({ message: "Invalid email or password." });
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid email or password." });
       }
 
+      if (!user.isVerified) {
+        return res
+          .status(403)
+          .json({ success: false, message: "Please verify before logging In" });
+      }
       const passwordMatch = await bcrypt.compare(password, user.password);
       if (!passwordMatch) {
-        return res.status(400).json({ message: "Invalid email or password." });
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid email or password." });
       }
 
-      const jwtPayload = { userId: user._id, userRole: user.roleName };
+      const jwtPayload = {
+        userId: user._id,
+        userRole: user.roleName,
+        userName: user.fullName,
+      };
       const token = await generateSecureToken(jwtPayload);
 
       res.status(200).json({
+        success: true,
         message: "Login successful.",
         token,
-        user: {
-          id: user._id,
-          name: user.fullName,
-          email: user.email,
-          role: user.roleName,
-        },
       });
     } catch (error) {
-      res.status(500).json({ message: "Login failed.", error: error.message });
+      res.status(500).json({
+        success: false,
+        message: "Login failed.",
+        error: error.message,
+      });
     }
   };
 

@@ -28,6 +28,10 @@ const userSchema = new mongoose.Schema(
       },
     },
     status: { type: String, enum: ["active", "inactive"], default: "active" },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

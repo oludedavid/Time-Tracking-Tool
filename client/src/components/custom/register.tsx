@@ -1,11 +1,11 @@
 "use client";
-import React, { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import { AxiosError } from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import {
   Form,
   FormControl,
@@ -64,7 +64,34 @@ const formSchema = z
     path: ["confirmPassword"],
   });
 
+type TAddUser = z.infer<typeof formSchema>;
+
+const addUser = async (user: TAddUser) => {
+  try {
+    const { data } = await axios.post(
+      "http://localhost:5001/api/users/register",
+      user
+    );
+    return data;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      console.error(
+        "Error registering user:",
+        error.response?.data || error.message
+      );
+      throw new Error(
+        error.response?.data?.message || "Failed to register user"
+      );
+    } else {
+      console.error("Unexpected error:", error);
+      throw new Error("Something went wrong");
+    }
+  }
+};
+
 export default function Register() {
+  const { toast } = useToast();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -75,14 +102,26 @@ export default function Register() {
       role: "freelancer",
     },
   });
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const { data } = await axios.post(
-      "http://localhost:5001/api/users/register",
-      values
-    );
-    console.log(data);
-    console.log(values);
+    try {
+      const data = await addUser(values);
+      if (data.success) {
+        toast({
+          title: "🎉 Registration Successful!",
+          description:
+            "Your account has been created. Please verify your email to login",
+          className: "bg-green-500/20 border-green-500 text-white",
+        });
+      }
+      form.reset();
+    } catch (error) {
+      toast({
+        title: "⚠️ Registration Failed",
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    }
   }
 
   return (
@@ -96,12 +135,16 @@ export default function Register() {
           name="fullName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="">Fullname</FormLabel>
+              <FormLabel className="text-sm font-medium">Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="Max Müller" {...field} />
+                <Input
+                  type="text"
+                  placeholder="Max Müller"
+                  {...field}
+                  className="bg-white/10 border-white/20 hover:bg-white/20 focus:ring-2 focus:ring-primary/50"
+                />
               </FormControl>
-
-              <FormMessage />
+              <FormMessage className="text-xs text-red-300" />
             </FormItem>
           )}
         />
@@ -110,16 +153,16 @@ export default function Register() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="">Email</FormLabel>
+              <FormLabel className="text-sm font-medium">Email</FormLabel>
               <FormControl>
                 <Input
                   type="email"
-                  placeholder="maxmüller@hotmail.com"
+                  placeholder="MaxMüller@jtmail.com"
                   {...field}
+                  className="bg-white/10 border-white/20 hover:bg-white/20 focus:ring-2 focus:ring-primary/50"
                 />
               </FormControl>
-
-              <FormMessage />
+              <FormMessage className="text-xs text-red-300" />
             </FormItem>
           )}
         />
@@ -128,12 +171,16 @@ export default function Register() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="">Password</FormLabel>
+              <FormLabel className="text-sm font-medium">Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="Password" {...field} />
+                <Input
+                  type="password"
+                  placeholder="Password"
+                  {...field}
+                  className="bg-white/10 border-white/20 hover:bg-white/20 focus:ring-2 focus:ring-primary/50"
+                />
               </FormControl>
-
-              <FormMessage />
+              <FormMessage className="text-xs text-red-300" />
             </FormItem>
           )}
         />
@@ -142,16 +189,18 @@ export default function Register() {
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="">Confirm Password</FormLabel>
+              <FormLabel className="text-sm font-medium">
+                Confirm Password
+              </FormLabel>
               <FormControl>
                 <Input
                   type="password"
                   placeholder="Confirm Password"
                   {...field}
+                  className="bg-white/10 border-white/20 hover:bg-white/20 focus:ring-2 focus:ring-primary/50"
                 />
               </FormControl>
-
-              <FormMessage />
+              <FormMessage className="text-xs text-red-300" />
             </FormItem>
           )}
         />
@@ -160,22 +209,25 @@ export default function Register() {
           name="role"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="">Role</FormLabel>
+              <FormLabel className="text-sm font-medium">Role</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white/10 border-white/20 hover:bg-white/20 focus:ring-2 focus:ring-primary/50">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="freelancer">Freelancer</SelectItem>
-                  <SelectItem value="project manager">
-                    Project Manager
+                  <SelectItem
+                    value="project manager"
+                    className="hover:bg-white/10"
+                  >
+                    <span className="capitalize">Project Manager</span>
                   </SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
-              <FormMessage />
+              <FormMessage className="text-xs text-red-300" />
             </FormItem>
           )}
         />
