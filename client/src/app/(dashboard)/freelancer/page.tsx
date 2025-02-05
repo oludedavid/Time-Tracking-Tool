@@ -1,13 +1,12 @@
 "use client";
-import LogoutButton from "@/components/custom/logout";
+
 import RouteGuard from "@/components/custom/routeGuard";
 import { FC } from "react";
 
 const FreelancerDashboardContent: FC = () => {
   return (
-    <div className="">
-      <h1>Freelancer dashboard Page</h1>
-      <LogoutButton />
+    <div className="p-4">
+      <h1 className="font-extrabold text-3xl">Overview</h1>
     </div>
   );
 };
