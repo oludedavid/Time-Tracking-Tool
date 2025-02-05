@@ -22,7 +22,7 @@ export default function DashboardSideBar({
   return (
     <Sidebar className="sidebar">
       <SidebarHeader className="sideBarHeader flex items-center gap-2 ">
-        <Brand className="font-bold text-2xl py-2" brandText="Chronovault" />
+        <Brand className="font-bold text-2xl py-2" brandText="Logify" />
       </SidebarHeader>
       <SidebarContent
         style={{
